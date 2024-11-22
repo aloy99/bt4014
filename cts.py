@@ -9,7 +9,7 @@ from scipy.linalg import solve
 # Create class object for a single linear ucb disjoint arm
 class cbts_arm():
     
-    def __init__(self, arm_index, d, R = 0.01, epsilon = 0.5, delta = 0.5):
+    def __init__(self, arm_index, d, R = 0.01, epsilon = 0.1, delta = 0.1):
         
         # Track arm index
         self.arm_index = arm_index
@@ -59,9 +59,9 @@ class cbts_arm():
 
 class cbts_policy():
     
-    def __init__(self, K_arms, d, R):
+    def __init__(self, K_arms, d, R, **kwargs):
         self.K_arms = K_arms
-        self.cbts_arms = [cbts_arm(arm_index = i, d = d, R = R) for i in range(K_arms)]
+        self.cbts_arms = [cbts_arm(arm_index = i, d = d, R = R, **kwargs) for i in range(K_arms)]
 
     def topk_by_partition(self, array, k, axis=None, ascending=True):
         if not ascending:
@@ -109,12 +109,12 @@ class cbts_policy():
         return chosen_arm
 
     def select_k_arms(self, x_array, T, k):
-        arm_bts = np.array([self.cbts_arms[arm_index].calc_bts(x_array, T) for arm_index in range(self.K_arms)])
-        return self.topk_by_partition(arm_bts, k)[1]
+        arm_ucbs = sorted(((arm_index, self.cbts_arms[arm_index].calc_bts(x_array, T)) for arm_index in range(self.K_arms)), key=lambda x: x[1], reverse=True)
+        return [x for x, y in arm_ucbs[:k]]
 
-def ctr_simulator(df, K_arms, d, R):
+def ctr_simulator(df, K_arms, d, R, **kwargs):
     # Initiate policy
-    cbts_policy_object = cbts_policy(K_arms = K_arms, d = d, R = R)
+    cbts_policy_object = cbts_policy(K_arms = K_arms, d = d, R = R, **kwargs)
     
     # Instantiate trackers
     aligned_time_steps = 0
